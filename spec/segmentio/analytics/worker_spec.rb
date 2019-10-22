@@ -1,23 +1,23 @@
 require 'spec_helper'
 
-module Segment
+module Segmentio
   class Analytics
     describe Worker do
       describe "#init" do
         it 'accepts string keys' do
           queue = Queue.new
-          worker = Segment::Analytics::Worker.new(queue, 'secret', 'batch_size' => 100)
+          worker = Segmentio::Analytics::Worker.new(queue, 'secret', 'batch_size' => 100)
           worker.instance_variable_get(:@batch_size).should == 100
         end
       end
 
       describe '#flush' do
         before :all do
-          Segment::Analytics::Defaults::Request::BACKOFF = 0.1
+          Segmentio::Analytics::Defaults::Request::BACKOFF = 0.1
         end
 
         after :all do
-          Segment::Analytics::Defaults::Request::BACKOFF = 30.0
+          Segmentio::Analytics::Defaults::Request::BACKOFF = 30.0
         end
 
         it 'should not error if the endpoint is unreachable' do
@@ -25,7 +25,7 @@ module Segment
 
           queue = Queue.new
           queue << {}
-          worker = Segment::Analytics::Worker.new(queue, 'secret')
+          worker = Segmentio::Analytics::Worker.new(queue, 'secret')
           worker.run
 
           queue.should be_empty
@@ -34,7 +34,7 @@ module Segment
         end
 
         it 'should execute the error handler if the request is invalid' do
-          Segment::Analytics::Request.any_instance.stub(:post).and_return(Segment::Analytics::Response.new(400, "Some error"))
+          Segmentio::Analytics::Request.any_instance.stub(:post).and_return(Segmentio::Analytics::Response.new(400, "Some error"))
 
           on_error = Proc.new do |status, error|
             puts "#{status}, #{error}"
@@ -44,10 +44,10 @@ module Segment
 
           queue = Queue.new
           queue << {}
-          worker = Segment::Analytics::Worker.new queue, 'secret', :on_error => on_error
+          worker = Segmentio::Analytics::Worker.new queue, 'secret', :on_error => on_error
           worker.run
 
-          Segment::Analytics::Request::any_instance.unstub(:post)
+          Segmentio::Analytics::Request::any_instance.unstub(:post)
 
           queue.should be_empty
         end
@@ -62,7 +62,7 @@ module Segment
 
           queue = Queue.new
           queue << Requested::TRACK
-          worker = Segment::Analytics::Worker.new queue, 'testsecret', :on_error => on_error
+          worker = Segmentio::Analytics::Worker.new queue, 'testsecret', :on_error => on_error
           worker.run
 
           queue.should be_empty
@@ -73,7 +73,7 @@ module Segment
         it 'should not return true if there isn\'t a current batch' do
 
           queue = Queue.new
-          worker = Segment::Analytics::Worker.new(queue, 'testsecret')
+          worker = Segmentio::Analytics::Worker.new(queue, 'testsecret')
 
           worker.is_requesting?.should == false
         end
@@ -81,7 +81,7 @@ module Segment
         it 'should return true if there is a current batch' do
           queue = Queue.new
           queue << Requested::TRACK
-          worker = Segment::Analytics::Worker.new(queue, 'testsecret')
+          worker = Segmentio::Analytics::Worker.new(queue, 'testsecret')
 
           Thread.new do
             worker.run
